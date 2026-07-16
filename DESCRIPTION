@@ -1,0 +1,38 @@
+Package: incantation
+Title: Post-Layout Graphics Manipulation for R
+Version: 0.1.0
+Authors@R:
+    person("Incantation", "Authors", role = c("aut", "cre"),
+           email = "mackenzie_quiwck@programmer.net")
+Description: A post-layout visual editing layer for 'ggplot2', 'patchwork',
+    'aplot' and 'cowplot' figures. Once a composition has been laid out,
+    incantation selects whole subplots or individual graphical elements and
+    moves, aligns or restacks them without recomputing the layout: canvas size,
+    panel dimensions, sibling positions and row/column weights stay frozen.
+    Every measurement is reported in device points against an explicitly bound
+    device size, and every edit is a structured, serialisable operation, so an
+    agent can measure a gap, act on it, and verify the result in a closed loop.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    grid,
+    gtable,
+    ggplot2 (>= 3.4.0),
+    grDevices,
+    stats,
+    tools
+Suggests:
+    patchwork,
+    aplot,
+    cowplot,
+    ggplotify,
+    tibble,
+    tidyverse,
+    jsonlite,
+    testthat (>= 3.0.0),
+    vdiffr
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

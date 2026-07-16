@@ -1,0 +1,15 @@
+# R build artifacts
+*.tar.gz
+*.Rcheck/
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+Rplots.pdf
+
+# figure output written by the demo script
+result/
+
+# OS / editor
+.DS_Store
+*.swp

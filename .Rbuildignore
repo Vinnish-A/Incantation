@@ -1,0 +1,10 @@
+^REVIEW\.md$
+^AGENTS\.md$
+^example\.R$
+^example2\.R$
+^dev$
+^result$
+^\.git$
+^LICENSE\.md$
+^incantation\.Rcheck$
+^.*\.tar\.gz$
