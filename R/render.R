@@ -7,7 +7,7 @@
 #' @export
 as_gtable = function(scene) {
   gt = scene$base
-  for (tr in scene$transforms) {
+  for (tr in .resolved_transforms(scene)) {
     if (identical(tr$type, "translate")) {
       el = scene$registry[[tr$target]]
       parts = el$parts
@@ -87,7 +87,7 @@ ggsave_incant = function(scene, filename, width = NULL, height = NULL,
   switch(ext,
     png = grDevices::png(filename, width = win, height = hin, units = "in", res = res),
     pdf = grDevices::pdf(filename, width = win, height = hin),
-    svg = grDevices::svg(filename, width = win, height = hin),
+    svg = svglite::svglite(filename, width = win, height = hin),
     inc_abort(sprintf("unsupported output extension: .%s", ext), class = "inc_error_bad_ext")
   )
   on.exit(grDevices::dev.off(), add = TRUE)

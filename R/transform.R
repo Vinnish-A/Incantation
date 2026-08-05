@@ -34,12 +34,15 @@ translate = function(scene, dx = 0, dy = 0, unit = "pt", clip = "off",
                     clip = clip, include_background = include_background))
 }
 
-# shared helper: move plot `a` vertically/horizontally by dy/dx pt
-.move_plot = function(scene, a, dx = 0, dy = 0, clip = "off") {
-  target = if (is.numeric(a)) paste0("plot-", as.integer(a)) else as.character(a)
-  if (is.null(scene$registry[[target]])) err_no_match(sprintf("`%s`", target), names(scene$registry))
-  .push(scene, list(type = "translate", target = target, dx = dx, dy = dy,
-                    clip = clip, include_background = FALSE))
+# Resolve a public reference once, while preserving a semantic constraint in the
+# operation log. Raw translations stay device-bound; constraints are re-measured
+# against whichever scene receives the manifest.
+.target_id = function(scene, ref) .resolve(scene, ref)$id
+
+.push_constraint = function(scene, type, a, b, gap = NULL, unit = NULL) {
+  op = list(type = type, target = .target_id(scene, a), reference = .target_id(scene, b))
+  if (!is.null(gap)) op$gap = .to_pt(gap, unit)
+  .push(scene, op)
 }
 
 #' Place plot `a` a stated gap below plot `b` (device-independent)
@@ -51,22 +54,14 @@ translate = function(scene, dx = 0, dy = 0, unit = "pt", clip = "off",
 #' @param gap,unit Target gap.
 #' @export
 place_below = function(scene, a, b, gap = 0, unit = "pt") {
-  g = .to_pt(gap, unit)
-  cur = as.numeric(gap(scene, a, b, "vertical"))
-  a_below = bbox(scene, a)$bottom < bbox(scene, b)$bottom
-  dy = if (a_below) cur - g else g - cur
-  .move_plot(scene, a, dy = dy)
+  .push_constraint(scene, "place_below", a, b, gap, unit)
 }
 
 #' Place plot `a` a stated gap above plot `b`
 #' @inheritParams place_below
 #' @export
 place_above = function(scene, a, b, gap = 0, unit = "pt") {
-  g = .to_pt(gap, unit)
-  cur = as.numeric(gap(scene, a, b, "vertical"))
-  a_above = bbox(scene, a)$bottom > bbox(scene, b)$bottom
-  dy = if (a_above) g - cur else cur - g
-  .move_plot(scene, a, dy = dy)
+  .push_constraint(scene, "place_above", a, b, gap, unit)
 }
 
 #' Align the top / bottom / left / right edge of `a` to `b`
@@ -74,16 +69,16 @@ place_above = function(scene, a, b, gap = 0, unit = "pt") {
 #' @param a,b Plot indices or element ids.
 #' @name align
 #' @export
-align_top = function(scene, a, b) .move_plot(scene, a, dy = bbox(scene, b)$top - bbox(scene, a)$top)
+align_top = function(scene, a, b) .push_constraint(scene, "align_top", a, b)
 #' @rdname align
 #' @export
-align_bottom = function(scene, a, b) .move_plot(scene, a, dy = bbox(scene, b)$bottom - bbox(scene, a)$bottom)
+align_bottom = function(scene, a, b) .push_constraint(scene, "align_bottom", a, b)
 #' @rdname align
 #' @export
-align_left = function(scene, a, b) .move_plot(scene, a, dx = bbox(scene, b)$left - bbox(scene, a)$left)
+align_left = function(scene, a, b) .push_constraint(scene, "align_left", a, b)
 #' @rdname align
 #' @export
-align_right = function(scene, a, b) .move_plot(scene, a, dx = bbox(scene, b)$right - bbox(scene, a)$right)
+align_right = function(scene, a, b) .push_constraint(scene, "align_right", a, b)
 
 #' Raise the selected plot to the front / send it to the back
 #'
@@ -111,4 +106,50 @@ send_to_back = function(scene) {
     }
   }
   z
+}
+
+.translate_op = function(target, dx = 0, dy = 0) {
+  list(type = "translate", target = target, dx = dx, dy = dy,
+       clip = "off", include_background = FALSE)
+}
+
+.resolve_constraint = function(scene, op) {
+  a = op$target
+  b = op$reference
+  ba = bbox(scene, a)
+  bb = bbox(scene, b)
+
+  switch(op$type,
+    place_below = {
+      cur = as.numeric(gap(scene, a, b, "vertical"))
+      dy = if (ba$bottom < bb$bottom) cur - op$gap else op$gap - cur
+      .translate_op(a, dy = dy)
+    },
+    place_above = {
+      cur = as.numeric(gap(scene, a, b, "vertical"))
+      dy = if (ba$bottom > bb$bottom) op$gap - cur else cur - op$gap
+      .translate_op(a, dy = dy)
+    },
+    align_top = .translate_op(a, dy = bb$top - ba$top),
+    align_bottom = .translate_op(a, dy = bb$bottom - ba$bottom),
+    align_left = .translate_op(a, dx = bb$left - ba$left),
+    align_right = .translate_op(a, dx = bb$right - ba$right)
+  )
+}
+
+.constraint_types = c("place_below", "place_above", "align_top", "align_bottom",
+                      "align_left", "align_right")
+
+.resolved_transforms = function(scene) {
+  out = list()
+  for (op in scene$transforms) {
+    if (op$type %in% .constraint_types) {
+      current = scene
+      current$transforms = out
+      out = c(out, list(.resolve_constraint(current, op)))
+    } else {
+      out = c(out, list(op))
+    }
+  }
+  out
 }

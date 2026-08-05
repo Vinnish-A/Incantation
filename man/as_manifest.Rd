@@ -7,7 +7,7 @@
 as_manifest(scene)
 }
 \arguments{
-\item{scene}{An \code{inc_scene}.}
+\item{scene}{An \code{inc_scene} or \code{inc_svg}.}
 }
 \description{
 The scene's edits as a plain manifest (list of operations)

@@ -11,7 +11,7 @@ write_incantation(scene, path)
 apply_incantation(scene, path)
 }
 \arguments{
-\item{scene}{An \code{inc_scene}. @param path File path of a manifest.}
+\item{scene}{An \code{inc_scene} or \code{inc_svg}. @param path File path of a manifest.}
 
 \item{path}{File path.}
 }

@@ -3,6 +3,10 @@
 > 下面是可运行的快速上手；本文其余部分是设计文档。
 > 实现进度、评审与实测见 [`REVIEW.md`](REVIEW.md)，测试见 `tests/testthat/` 与 `dev/characterization.R`。
 
+Incantation 现在分为两层：`inc_scene` 处理冻结布局后的整图和布局角色，
+`inc_svg` 把已经渲染完成的 SVG 作为事实来源，处理单个点、文字、线和路径。
+视觉 Agent 可以只读取 SVG 元素清单和最终像素验证，不需要读取 ggplot layer 或原始数据。
+
 ## 快速上手
 
 ```r
@@ -31,6 +35,36 @@ ggsave_incant(fixed, "figure.pdf")   # 尺寸必须与 scene 一致，否则报�
 # 4) 序列化：编辑是结构化指令，可审计、可复现
 write_incantation(fixed, "edit.json")
 ```
+
+### 最终结果图元编辑
+
+```r
+p = ggplot(mtcars, aes(wt, mpg, label = rownames(mtcars))) +
+  geom_point() +
+  geom_text()
+
+svg = incant(p, width = 8, height = 6) |>
+  as_svg()
+
+svg_manifest(svg)                    # circle / text / path 等最终图元
+
+edited = svg |>
+  select_svg_text("Mazda RX4") |>
+  svg_translate(dy = 6) |>
+  svg_style(fill = "#D62728")
+
+verify_svg(svg, edited)              # 固定尺寸像素差；零变化会明确报告
+write_svg(edited, "figure-edited.svg")
+write_incantation(edited, "svg-edit.json")
+```
+
+SVG 操作绑定 `source_hash`，只能可靠地重放到同一份最终快照。若要在重新生成、
+数据已经变化的图上寻找“同一个语义对象”，就必须额外使用来源信息或启发式匹配；
+纯结果模式不承诺这种跨快照身份稳定性。
+
+`svg_manifest()` 对 circle、rect、line、polyline、polygon 和 text 给出近似 bbox；
+任意 path/use 的 bbox 暂不猜测。所有编辑是否真的生效、是否波及目标之外区域，最终以
+`verify_svg()` 的固定尺寸像素报告为准。
 
 参照目标用**整数**（plot 序号）或**字符串**（元素 id，如 `"plot-2/panel"`、`"inset-2"`）指定；
 不提供 `plot()` / `id()` 这类会遮蔽 base 函数的定位器。支持后端：ggplot2、patchwork（含嵌套、
@@ -1231,4 +1265,3 @@ incant(p_c) |>
 Incantation 的核心并不是增加另一套复杂布局系统，而是在现有布局系统之后增加一个可靠的视觉编辑层：
 
 > **布局系统负责决定图形原本在哪里；Incantation 负责让它最终出现在用户想要的位置。**
-

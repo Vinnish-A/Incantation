@@ -1,6 +1,6 @@
 Package: incantation
 Title: Post-Layout Graphics Manipulation for R
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Incantation", "Authors", role = c("aut", "cre"),
            email = "mackenzie_quiwck@programmer.net")
@@ -12,17 +12,23 @@ Description: A post-layout visual editing layer for 'ggplot2', 'patchwork',
     Every measurement is reported in device points against an explicitly bound
     device size, and every edit is a structured, serialisable operation, so an
     agent can measure a gap, act on it, and verify the result in a closed loop.
+    Result-native SVG snapshots additionally expose individual circles, text,
+    paths and other visible primitives for structured leaf-level editing and
+    fixed-size pixel verification without inspecting the plotting process.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:
     R (>= 4.1.0)
 Imports:
+    digest,
     grid,
     gtable,
     ggplot2 (>= 3.4.0),
     grDevices,
     stats,
-    tools
+    svglite,
+    tools,
+    xml2
 Suggests:
     patchwork,
     aplot,
@@ -31,6 +37,7 @@ Suggests:
     tibble,
     tidyverse,
     jsonlite,
+    rsvg,
     testthat (>= 3.0.0),
     vdiffr
 Config/testthat/edition: 3

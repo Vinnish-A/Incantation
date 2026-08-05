@@ -1,3 +1,16 @@
+# incantation 0.2.0
+
+* Added result-native `inc_svg` snapshots through `as_svg()`. Output uses
+  `svglite`, preserves editable text, and assigns snapshot-local ids to visible
+  SVG leaf primitives.
+* Added structured SVG selection by id, text, point and bounding box; translation,
+  scale, rotation, style, hiding and z-order operations; standalone SVG output;
+  and fixed-size pixel verification with `verify_svg()`.
+* Scene manifests are now version 2. Declarative placement/alignment constraints
+  survive serialisation and are re-measured on the receiving device. Raw point
+  translations remain device-bound, and manifest versions, kinds, targets and
+  SVG source hashes are validated before replay.
+
 # incantation 0.1.0
 
 First release: a post-layout visual editing layer for ggplot2, patchwork, aplot

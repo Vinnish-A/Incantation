@@ -60,7 +60,7 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
 # transform moves a path iff that path is among its target's moved parts.
 .net_shift = function(scene, grob_path) {
   dx = 0; dy = 0
-  for (tr in scene$transforms) {
+  for (tr in .resolved_transforms(scene)) {
     if (is.null(tr$dx) && is.null(tr$dy)) next
     moved = .moved_paths(scene, tr)
     if (any(vapply(moved, identical, logical(1), grob_path))) {
