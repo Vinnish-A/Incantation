@@ -4,7 +4,9 @@
 ^example2\.R$
 ^dev$
 ^result$
+^plan$
 ^\.git$
 ^LICENSE\.md$
 ^incantation\.Rcheck$
 ^.*\.tar\.gz$
+^Rplots\.pdf$

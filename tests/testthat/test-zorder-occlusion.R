@@ -40,6 +40,7 @@ test_that("moving an opaque background over a sibling is diagnosed", {
   d = diagnose(s1)
   expect_equal(d$status, "warning")
   expect_match(paste(d$issues, collapse = " "), "opaque|occlud|cover")
+  expect_false(any(grepl("plot-2 occludes plot-2", d$issues, fixed = TRUE)))
 })
 
 test_that("moving a low-z subplot under a high-z one is diagnosed, not silently wrong", {

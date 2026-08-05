@@ -56,11 +56,21 @@ apply_incantation = function(scene, path) {
     inc_abort("an SVG manifest cannot be applied to an inc_scene.", class = "inc_error_manifest_kind")
   }
   ops = .manifest_ops(man$operations)
-  raw = Filter(function(op) identical(op$type, "translate"), ops)
-  if (length(raw) && !.same_device(scene$device, man$device)) {
+  bound = Filter(function(op) {
+    type = .scalar_value(op$type)
+    identical(type, "translate") ||
+      (identical(type, "decorate_group") &&
+       identical(.scalar_value(op$span$type), "absolute"))
+  }, ops)
+  if (length(bound) && !.same_device(scene$device, man$device)) {
     err_device_mismatch(man$device, scene$device)
   }
   for (op in ops) {
+    op$type = .scalar_value(op$type)
+    if (identical(op$type, "decorate_group")) {
+      scene = .add_decoration(scene, op, activate = FALSE)
+      next
+    }
     .validate_manifest_op(scene, op)
     scene$transforms = c(scene$transforms, list(op))
   }
@@ -86,12 +96,17 @@ apply_incantation = function(scene, path) {
 }
 
 .validate_manifest_op = function(scene, op) {
-  allowed = c("translate", "z", .constraint_types)
+  allowed = c("translate", "z", .constraint_types, "decorate_group")
   if (is.null(op$type) || !op$type %in% allowed) {
     inc_abort(sprintf("unsupported manifest operation `%s`.", op$type %||% "<missing>"),
               class = "inc_error_manifest_operation")
   }
-  .validate_manifest_target(scene, op$target)
+  if (identical(op$type, "decorate_group")) {
+    .validate_decoration_op(scene, op)
+    return(invisible(op))
+  }
+  .validate_manifest_target(scene, .scalar_value(op$target))
+  op$target = .scalar_value(op$target)
   if (op$type %in% .constraint_types) .validate_manifest_target(scene, op$reference)
   invisible(op)
 }

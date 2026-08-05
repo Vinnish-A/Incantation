@@ -39,9 +39,18 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
     list(
       base = cap$root,
       backend = cap$backend,
+      source = cap$source,
+      capabilities = list(
+        decoration_outer = if (identical(cap$backend, "cowplot")) {
+          "plot-viewport"
+        } else {
+          "layout-cells"
+        }
+      ),
       device = device,
       registry = registry,
       transforms = list(),
+      decorations = list(),
       active = NULL
     ),
     class = "inc_scene"
@@ -72,6 +81,7 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
 
 .moved_paths = function(scene, tr) {
   el = scene$registry[[tr$target]]
+  if (is.null(el)) err_no_match(sprintf("id `%s`", tr$target), names(scene$registry))
   parts = el$parts
   if (!isTRUE(tr$include_background)) parts = parts[!vapply(parts, `[[`, logical(1), "is_background")]
   lapply(parts, `[[`, "grob_path")

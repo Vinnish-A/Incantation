@@ -1,6 +1,6 @@
 Package: incantation
 Title: Post-Layout Graphics Manipulation for R
-Version: 0.2.0
+Version: 0.3.0
 Authors@R:
     person("Incantation", "Authors", role = c("aut", "cre"),
            email = "mackenzie_quiwck@programmer.net")
@@ -15,6 +15,9 @@ Description: A post-layout visual editing layer for 'ggplot2', 'patchwork',
     Result-native SVG snapshots additionally expose individual circles, text,
     paths and other visible primitives for structured leaf-level editing and
     fixed-size pixel verification without inspecting the plotting process.
+    Group decorations add semantic side-anchored rules and titles to every
+    supported backend as independently editable overlay elements while
+    preserving the frozen layout.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends:

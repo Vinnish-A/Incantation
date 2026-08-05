@@ -1,3 +1,15 @@
+# incantation 0.3.0
+
+* Added group decorations for ggplot2, patchwork, aplot, cowplot and raw gtable
+  scenes, with semantic panel spans, layout-frontier placement on all four
+  sides, independently trimmed ends and aligned titles.
+* Decorations, their lines and their titles are first-class scene elements that
+  can be inspected, measured, selected, translated, restacked and serialised.
+* Decoration anchors resolve against the final transformed plot geometry.
+  Fixed-canvas overflow is diagnosed explicitly and never changes the frozen
+  source layout. Cowplot uses each subplot viewport as its available outer
+  boundary because it does not retain per-subplot layout cells.
+
 # incantation 0.2.0
 
 * Added result-native `inc_svg` snapshots through `as_svg()`. Output uses

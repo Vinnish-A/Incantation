@@ -21,12 +21,7 @@
 
 # Anchor may be one part (normal panel) or several (facet panels) -> union.
 .anchor_rect = function(scene, el) {
-  rects = lapply(el$parts[el$anchor], function(p) {
-    b = p$base
-    sh = .net_shift(scene, p$grob_path)
-    c(left = b[["left"]] + sh$dx, right = b[["right"]] + sh$dx,
-      bottom = b[["bottom"]] + sh$dy, top = b[["top"]] + sh$dy)
-  })
+  rects = lapply(el$parts[el$anchor], function(part) .part_rect(scene, part))
   rect_union(rects)
 }
 
@@ -131,6 +126,7 @@ inspect = function(scene) {
     role = vapply(els, `[[`, character(1), "role"),
     plot_index = vapply(els, function(e) as.integer(e$plot_index), integer(1)),
     grob_name = vapply(els, function(e) {
+      if (.is_decoration_element(e)) return(e$id)
       p = e$parts[[e$anchor[1]]]
       nm = scene$base$layout$name
       if (length(p$grob_path) == 1) nm[p$grob_path] else "<nested>"

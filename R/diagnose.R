@@ -4,6 +4,9 @@
 # sibling.
 
 .part_rect = function(scene, part) {
+  if (!is.null(part$decoration_id)) {
+    return(.decoration_component_rect(scene, part$decoration_id, part$component))
+  }
   sh = .net_shift(scene, part$grob_path)
   b = part$base
   c(left = b[["left"]] + sh$dx, right = b[["right"]] + sh$dx,
@@ -64,11 +67,26 @@ diagnose = function(scene) {
       if (!isTRUE(p$is_background) || isTRUE(p$is_blank)) next
       br = .part_rect(scene, p)
       for (j in seq_along(plots)) {
-        if (identical(ids[j], tr$target)) next
+        if (identical(ids[[j]], tr$target)) next
         ov = rect_overlap(br, rects[[j]])
         if (ov["x"] > 0.5 && ov["y"] > 0.5) {
           issues = c(issues, sprintf("opaque background of %s occludes %s", tr$target, ids[j]))
         }
+      }
+    }
+  }
+
+  # Decorations are fixed-canvas overlays. Report overflow instead of growing
+  # the canvas or silently clipping a title at the device edge.
+  for (id in names(scene$decorations)) {
+    geometry = .decoration_geometry(scene, scene$decorations[[id]])
+    components = list(line = geometry$line_rect)
+    if (!is.null(geometry$title_rect)) components$title = geometry$title_rect
+    for (component in names(components)) {
+      r = components[[component]]
+      if (r["left"] < -0.5 || r["bottom"] < -0.5 ||
+          r["right"] > cv["width"] + 0.5 || r["top"] > cv["height"] + 0.5) {
+        issues = c(issues, sprintf("%s/%s is partially outside canvas", id, component))
       }
     }
   }

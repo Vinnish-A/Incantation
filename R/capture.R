@@ -14,15 +14,24 @@ inc_capture = function(x) {
     if (!requireNamespace("patchwork", quietly = TRUE)) {
       inc_abort("patchwork support needs the 'patchwork' package.", class = "inc_error_missing_pkg")
     }
-    return(list(root = .lay_out(patchwork::patchworkGrob(x)), backend = "patchwork", index_map = NULL))
+    return(list(root = .lay_out(patchwork::patchworkGrob(x)), backend = "patchwork",
+                source = "patchwork", index_map = NULL))
   }
   if (inherits(x, "ggplot")) {
     root = .lay_out(ggplot2::ggplotGrob(x))
     backend = if (.looks_like_cowplot(root)) "cowplot" else "ggplot"
-    return(list(root = root, backend = backend, index_map = NULL))
+    return(list(root = root, backend = backend, source = backend, index_map = NULL))
   }
   if (inherits(x, "gtable")) {
-    return(list(root = x, backend = "patchwork", index_map = NULL))
+    backend = if (.looks_like_cowplot(x)) {
+      "cowplot"
+    } else if (any(x$layout$name == "panel-area") ||
+               any(grepl("^patchwork-table-[0-9]+$", x$layout$name))) {
+      "patchwork"
+    } else {
+      "ggplot"
+    }
+    return(list(root = x, backend = backend, source = "gtable", index_map = NULL))
   }
   inc_abort("`x` must be a ggplot, patchwork, aplot, cowplot or gtable.",
             class = "inc_error_unsupported_input")
@@ -58,5 +67,5 @@ capture_aplot = function(x) {
     val = layout_matrix[r, c]
     if (is.na(val)) NA_integer_ else as.integer(val)
   }
-  list(root = root, backend = "aplot", index_map = index_map)
+  list(root = root, backend = "aplot", source = "aplot", index_map = index_map)
 }

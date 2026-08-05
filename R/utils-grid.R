@@ -29,8 +29,17 @@
 with_scene_device = function(device, fun) {
   win = .units_to_inches(device$width, device$units)
   hin = .units_to_inches(device$height, device$units)
+  previous = grDevices::dev.cur()
   grDevices::pdf(NULL, width = win, height = hin)
-  on.exit(grDevices::dev.off(), add = TRUE)
+  opened = grDevices::dev.cur()
+  on.exit({
+    devices = grDevices::dev.list()
+    if (!is.null(devices) && opened %in% devices) grDevices::dev.off(opened)
+    devices = grDevices::dev.list()
+    if (previous != 1L && !is.null(devices) && previous %in% devices) {
+      grDevices::dev.set(previous)
+    }
+  }, add = TRUE)
   grid::grid.newpage()
   fun()
 }

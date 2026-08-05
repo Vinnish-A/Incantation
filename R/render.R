@@ -8,8 +8,11 @@
 as_gtable = function(scene) {
   gt = scene$base
   for (tr in .resolved_transforms(scene)) {
-    if (identical(tr$type, "translate")) {
+    if (identical(tr$type, "decorate_group")) {
+      next
+    } else if (identical(tr$type, "translate")) {
       el = scene$registry[[tr$target]]
+      if (.is_decoration_element(el)) next
       parts = el$parts
       if (!isTRUE(tr$include_background)) {
         parts = parts[!vapply(parts, `[[`, logical(1), "is_background")]
@@ -20,11 +23,20 @@ as_gtable = function(scene) {
       }
     } else if (identical(tr$type, "z")) {
       el = scene$registry[[tr$target]]
+      if (.is_decoration_element(el)) next
       for (p in el$parts) {
         if (length(p$grob_path) != 1) next          # top-level restack only
         row = p$grob_path
         gt$layout$z[row] = if (identical(tr$z, "front")) max(gt$layout$z) + 1L else min(gt$layout$z) - 1L
       }
+    }
+  }
+  for (op in scene$decorations) {
+    for (item in .decoration_grobs(scene, op)) {
+      gt = gtable::gtable_add_grob(
+        gt, item$grob, t = 1, l = 1, b = nrow(gt), r = ncol(gt),
+        z = item$z, name = item$name, clip = "off"
+      )
     }
   }
   gt
