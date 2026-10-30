@@ -22,16 +22,16 @@ nudge_after_layout <- function(
     unit = "pt",
     clip = "off"
 ) {
-  # 关键：先完成整个 patchwork 的布局
+  # Key: finish the complete patchwork layout first
   gt <- .as_laid_out_gtable(x)
   
   dx <- if (grid::is.unit(dx)) dx else grid::unit(dx, unit)
   dy <- if (grid::is.unit(dy)) dy else grid::unit(dy, unit)
   
   # select:
-  # NULL      = 移动全部 grob
-  # character = 用正则表达式匹配 gt$layout$name
-  # numeric   = 直接指定 grob 下标
+  # NULL      = Move all grobs
+  # character = Match gt$layout$name with a regular expression
+  # numeric   = Specify grob indices directly
   idx <- if (is.null(select)) {
     seq_along(gt$grobs)
   } else if (is.character(select)) {
@@ -70,13 +70,13 @@ nudge_after_layout <- function(
     )
   }
   
-  # 只替换绘制对象，不改变布局表的 t/l/b/r 和 widths/heights
+  # Replace drawing objects only; preserve layout t/l/b/r and widths/heights
   gt$grobs[idx] <- lapply(
     gt$grobs[idx],
     translate_one
   )
   
-  # 允许被移动的对象伸入相邻 patchwork 单元格
+  # Allow moved objects to extend into adjacent patchwork cells
   gt$layout$clip[idx] <- clip
   
   attr(gt, "nudged_layout_names") <- gt$layout$name[idx]

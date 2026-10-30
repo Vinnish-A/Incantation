@@ -2,34 +2,34 @@
 
 # Incantation
 
-**Agent native 的图形布局和后处理方案**
+**Agent-native figure layout and post-processing**
 
 [![R >= 4.1](https://img.shields.io/badge/R-%E2%89%A5%204.1-276DC3?logo=r&logoColor=white)](https://www.r-project.org/)
 [![Version 0.3.0](https://img.shields.io/badge/version-0.3.0-6941C6)](DESCRIPTION)
 [![MIT License](https://img.shields.io/badge/license-MIT-17816F)](LICENSE)
 
-[快速开始](#30-秒上手) · [功能](#功能) · [后端](#后端) · [API 速查](#api-速查)
+[Quick start](#30-second-quick-start) · [Features](#features) · [Backends](#backends) · [API reference](#api-reference)
 
 <br clear="right">
 
-![跨子图组合装饰的实际渲染结果](man/figures/readme-decoration.png)
+![Actual rendering of decorations spanning subplots](man/figures/readme-decoration.png)
 
-Incantation 面向论文制图的最后一公里：图已经基本正确，只需要把某个子图上移一点、
-让两块 panel 严格对齐、补一条跨图标题线，或检查改动是否越界。它包含两层：
+Incantation handles the final stages of publication graphics: the figure is largely correct, but a subplot needs a slight upward move,
+two panels need precise alignment, a title line needs to span plots, or an edit needs an overflow check. It has two layers:
 
-- `inc_scene`：编辑完成布局后的 plot、panel、标题、坐标轴和装饰元素。
-- `inc_svg`：直接编辑最终 SVG 中的文字、点、线和路径。
+- `inc_scene`: edit plots, panels, titles, axes and decorations after layout.
+- `inc_svg`: directly edit text, points, lines and paths in final SVGs.
 
-支持 ggplot2、patchwork、aplot、cowplot 和 raw gtable。
+Supports ggplot2, patchwork, aplot, cowplot and raw gtable.
 
-## 安装
+## Installation
 
 ```r
-# 开发版本
+# Development version
 pak::pak("Vinnish-A/Incantation")
 ```
 
-## 30 秒上手
+## 30-second quick start
 
 ```r
 library(incantation)
@@ -51,36 +51,36 @@ diagnose(edited)
 ggsave_incant(edited, "edited.svg")
 ```
 
-`width` 和 `height` 是必填项。所有测量都绑定到明确的输出设备，避免同一个 pt 位移
-在不同画布上产生不可预测的结果。
+width and height are required. All measurements bind to an explicit output device, preventing the same pt displacement
+from producing unpredictable results on different canvases.
 
-## 功能
+## Features
 
-### 1. 检查和测量布局
+### 1. Inspect and measure layouts
 
-`incant()` 先让原绘图后端完成布局，再建立稳定的元素 registry。
-`inspect()`、`bbox()` 和 `gap()` 返回可直接用于判断和自动化的设备坐标。
+incant() lets the original plotting backend finish layout, then builds a stable element registry.
+inspect(), bbox() and gap() return device coordinates usable directly for decisions and automation.
 
-![render debug 展示实际 panel 边界](man/figures/readme-inspect.png)
+![Render debug shows actual panel bounds](man/figures/readme-inspect.png)
 
 ```r
 scene = incant(p, width = 8, height = 6)
 
-inspect(scene)                 # 全部可寻址元素及 bbox
-bbox(scene, 1)                # plot 1 的 panel 边界，单位 pt
-gap(scene, 2, 1)              # 两个 panel 的有符号间距
-canvas_size(scene)            # 固定画布大小
-render(scene, debug = TRUE)   # 红框显示 plot panel
+inspect(scene)                 # All addressable elements and bboxes
+bbox(scene, 1)                # Plot 1 panel bounds in pt
+gap(scene, 2, 1)              # Signed distance between two panels
+canvas_size(scene)            # Fixed canvas dimensions
+render(scene, debug = TRUE)   # Red outlines around plot panels
 ```
 
-辅助函数：`plot_label()` 可核对子图序号，`is_empty_element()` 可识别 spacer。
+Helpers: plot_label() checks subplot indices; is_empty_element() identifies spacers.
 
-### 2. 选择并平移元素
+### 2. Select and translate elements
 
-选择器只接受明确的 plot 序号、语义角色或稳定 ID；空选择和歧义选择都会报错。
-`translate()` 只改变最终绘制位置，不重新计算 patchwork 行高、列宽或兄弟图位置。
+Selectors accept explicit plot indices, semantic roles or stable IDs; empty and ambiguous selections raise errors.
+translate() changes only final drawing positions, without recalculating patchwork row heights, column widths or sibling positions.
 
-![子图后布局平移前后对比](man/figures/readme-translate.png)
+![Before and after post-layout subplot translation](man/figures/readme-translate.png)
 
 ```r
 edited = scene |>
@@ -88,7 +88,7 @@ edited = scene |>
   translate(dy = 26, unit = "pt", clip = "off")
 ```
 
-可用选择器：
+Available selectors:
 
 ```r
 select_plot(scene, 2)
@@ -98,12 +98,12 @@ select_id(scene, "plot-2/axis-l")
 selection_spec(select_plot(scene, 2))
 ```
 
-### 3. 声明间距和对齐关系
+### 3. Declare spacing and alignment relationships
 
-如果希望编辑在不同设备尺寸上仍保持同样的物理间距，使用语义约束，而不是记录一次性
-位移。约束会在渲染或 manifest 重放时根据当前几何重新求解。
+To preserve physical spacing across device sizes, use semantic constraints rather than one-off
+displacements. Constraints resolve against current geometry during rendering or manifest replay.
 
-![place_below 将 panel 间距收敛到 5pt](man/figures/readme-constraints.png)
+![place_below brings panel spacing to 5 pt](man/figures/readme-constraints.png)
 
 ```r
 edited = scene |>
@@ -114,14 +114,14 @@ edited = scene |>
   align_left(2, 1)
 ```
 
-同组函数：`place_above()`、`align_top()`、`align_bottom()`、`align_left()`、
-`align_right()`。
+Related functions: place_above(), align_top(), align_bottom(), align_left(),
+align_right().
 
-### 4. 调整绘制层级
+### 4. Adjust drawing order
 
-重叠并不一定是错误，但目标必须处在正确的 z-order。层级调整仍然不会改变布局占位。
+Overlap is not necessarily wrong, but objects need the correct z-order. Reordering still leaves layout allocation unchanged.
 
-![重叠子图调整绘制层级前后对比](man/figures/readme-zorder.png)
+![Overlapping subplots before and after drawing-order adjustment](man/figures/readme-zorder.png)
 
 ```r
 overlapped = incant(p1 + p2, width = 7, height = 4) |>
@@ -137,12 +137,12 @@ back = overlapped |>
   send_to_back()
 ```
 
-### 5. 添加跨子图标题和装饰线
+### 5. Add titles and decorative lines across subplots
 
-`decorate_group()` 根据目标 panel 的最终几何生成线条和标题，支持四个方向、两端独立
-trim、标题对齐和绝对/语义 span。
+decorate_group() derives lines and titles from final panel geometry, supporting four sides, independent endpoint
+trimming, title alignment and absolute/semantic spans.
 
-![跨三个 panel 的标题与装饰线](man/figures/readme-decoration.png)
+![Title and decorative line spanning three panels](man/figures/readme-decoration.png)
 
 ```r
 p3 = ggplot(mtcars, aes(wt, qsec)) + geom_point()
@@ -158,7 +158,7 @@ decorated = incant(p1 + p2 + p3, width = 11, height = 4) |>
   )
 ```
 
-装饰整体、线和标题都是一等元素，可以继续编辑：
+The entire decoration, line and title are first-class elements available for further editing:
 
 ```r
 decorated |>
@@ -166,12 +166,12 @@ decorated |>
   translate(dx = 4, dy = -1)
 ```
 
-### 6. 诊断越界、遮挡和重叠
+### 6. Diagnose overflow, occlusion and overlap
 
-`diagnose()` 返回机器可读的 `status` 与 `issues`；`detect_overlap()` 返回重叠对象、
-方向和重叠量。它们适合放进视觉 Agent 的“检查—编辑—复核”闭环。
+diagnose() returns machine-readable status and issues; detect_overlap() returns overlapping objects,
+directions and overlap amounts. Both fit a visual agent’s inspect–edit–review loop.
 
-![真实重叠场景的 debug 边界和诊断结果](man/figures/readme-diagnose.png)
+![Debug bounds and diagnostics for a real overlap](man/figures/readme-diagnose.png)
 
 ```r
 diagnose(overlapped)
@@ -183,12 +183,12 @@ detect_overlap(overlapped)
 # 1  plot-1 plot-2       44.1 horizontal
 ```
 
-### 7. 保存和重放结构化操作
+### 7. Save and replay structured operations
 
-Scene 保存的是操作，不是不可审计的临时 grob。语义约束会在新 scene 上重新测量，
-因此编辑代码和原始绘图代码可以分开维护。
+Scenes store operations rather than unauditable temporary grobs. Semantic constraints remeasure on fresh scenes,
+so editing code and original plotting code can be maintained separately.
 
-![原图、编辑结果和 manifest 重放结果](man/figures/readme-manifest.png)
+![Original, edited and manifest-replayed results](man/figures/readme-manifest.png)
 
 ```r
 write_incantation(edited, "edit.json")
@@ -199,12 +199,12 @@ replayed = apply_incantation(fresh, "edit.json")
 as_manifest(replayed)
 ```
 
-### 8. 编辑最终 SVG 图元
+### 8. Edit final SVG elements
 
-`as_svg()` 把最终渲染结果冻结为 `inc_svg`。之后的选择和编辑只依赖 SVG，不需要访问
-ggplot layer 或原始数据。
+as_svg() freezes final rendering as inc_svg. Subsequent selection/editing depends only on SVG, without access to
+ggplot layers or original data.
 
-![SVG 文字平移和样式修改前后对比](man/figures/readme-svg.png)
+![SVG text before and after translation and styling](man/figures/readme-svg.png)
 
 ```r
 svg = scene |>
@@ -219,71 +219,71 @@ verify_svg(svg, edited_svg)
 write_svg(edited_svg, "edited.svg")
 ```
 
-SVG 选择器：`select_svg_id()`、`select_svg_text()`、`select_svg_at()`、
-`select_svg_bbox()`。
+SVG selectors: select_svg_id(), select_svg_text(), select_svg_at(),
+select_svg_bbox().
 
-SVG 变换：`svg_translate()`、`svg_scale()`、`svg_rotate()`、`svg_style()`、
-`svg_hide()`、`svg_zorder()`。`svg_manifest()` 可检查所有最终图元。
+SVG transforms: svg_translate(), svg_scale(), svg_rotate(), svg_style(),
+svg_hide(), svg_zorder(). svg_manifest() inspects all final elements.
 
-### 9. 渲染和保存
+### 9. Render and save
 
 ```r
-as_gtable(scene)                         # 返回编辑后的 gtable
-render(scene, debug = TRUE)              # 可绘制 gtable，可显示 debug 边界
-draw(scene)                              # 绘制到当前设备
+as_gtable(scene)                         # Return the edited gtable
+render(scene, debug = TRUE)              # Drawable gtable with optional debug bounds
+draw(scene)                              # Draw on the current device
 ggsave_incant(scene, "figure.png")       # png / pdf / svg
 ```
 
-`ggsave_incant()` 会拒绝与 scene 不一致的输出尺寸。这样不会把在 7 × 6 inch 画布上
-调好的绝对位移静默应用到另一尺寸。
+ggsave_incant() rejects output dimensions differing from the scene. Absolute offsets tuned on a 7 × 6 inch canvas
+cannot silently apply to another size.
 
-## 后端
+## Backends
 
-同一套选择、测量、变换、装饰和 manifest API 用于所有后端。
+All backends share selection, measurement, transformation, decoration and manifest APIs.
 
-![ggplot、patchwork、aplot 和 cowplot 的实际装饰结果](man/figures/readme-backends.png)
+![Actual decorations with ggplot, patchwork, aplot and cowplot](man/figures/readme-backends.png)
 
-| 输入 | 行为 |
+| Input | Behavior |
 |---|---|
-| ggplot | 作为一个可编辑 plot |
-| patchwork | 支持普通、嵌套、facet 和 inset 组合 |
-| aplot | 保留用户视角的主图/插图序号，不暴露内部 spacer |
-| cowplot | 从 `GeomDrawGrob` viewport 恢复每个子图 |
-| raw gtable | 按结构识别 ggplot、cowplot 或 patchwork 风格 |
+| ggplot | One editable plot |
+| patchwork | Ordinary, nested, faceted and inset compositions |
+| aplot | Preserves user-facing main/inset indices without exposing internal spacers |
+| cowplot | Recovers each subplot from GeomDrawGrob viewports |
+| raw gtable | Identifies ggplot, cowplot or patchwork structure |
 
-Cowplot 没有独立的子图布局 cell，因此装饰的 `layout_outer` 使用子图 viewport 外边界。
-已经转换为 raw gtable 的 aplot 不再含有恢复用户序号所需的 `$layout`；这类情况应把
-原始 aplot 对象传给 `incant()`。
+Cowplot has no independent subplot layout cells, so decoration layout_outer uses subplot viewport boundaries.
+aplot converted to raw gtable no longer retains the $layout needed to recover user-facing indices; pass the
+original aplot object to incant() instead.
 
-## 核心约束
+## Core constraints
 
-- **Frozen Layout**：编辑不改变画布、panel 尺寸、布局 tracks 或兄弟图位置。
-- **设备绑定**：`translate()` 和绝对 span 绑定 scene 尺寸；语义约束可跨尺寸重算。
-- **固定画布**：装饰空间不足时由 `diagnose()` 报告，不自动扩画布。
-- **显式选择**：找不到目标、目标为空或选择有歧义时立即报错。
-- **SVG 快照身份**：SVG manifest 绑定 `source_hash`，不承诺跨不同快照匹配同一图元。
+- **Frozen Layout**: edits do not change canvas, panel dimensions, layout tracks or sibling positions.
+- **Device binding**: translate() and absolute spans bind to scene dimensions; semantic constraints recompute across sizes.
+- **Fixed canvas**: diagnose() reports insufficient decoration space without expanding the canvas.
+- **Explicit selection**: missing, empty or ambiguous targets fail immediately.
+- **SVG snapshot identity**: SVG manifests bind to source_hash, without promising element matching across different snapshots.
 
-## API 速查
+## API reference
 
-| 模块 | 函数 |
+| Module | Functions |
 |---|---|
 | Scene | `incant()` |
-| 检查 | `inspect()`、`bbox()`、`gap()`、`canvas_size()`、`plot_label()`、`is_empty_element()` |
-| 选择 | `select_plot()`、`select_panel()`、`select_role()`、`select_id()`、`selection_spec()` |
-| 变换 | `translate()`、`place_below()`、`place_above()`、`align_*()` |
-| 层级 | `bring_to_front()`、`send_to_back()` |
-| 装饰 | `decorate_group()` |
-| 诊断 | `diagnose()`、`detect_overlap()` |
-| 渲染 | `as_gtable()`、`render()`、`draw()`、`ggsave_incant()` |
-| 操作记录 | `as_manifest()`、`write_incantation()`、`apply_incantation()` |
-| SVG | `as_svg()`、`svg_manifest()`、`select_svg_*()`、`svg_*()`、`verify_svg()`、`write_svg()` |
+| Inspection | `inspect()`, `bbox()`, `gap()`, `canvas_size()`, `plot_label()`, `is_empty_element()` |
+| Selection | `select_plot()`, `select_panel()`, `select_role()`, `select_id()`, `selection_spec()` |
+| Transformation | `translate()`, `place_below()`, `place_above()`, `align_*()` |
+| Drawing order | `bring_to_front()`, `send_to_back()` |
+| Decoration | `decorate_group()` |
+| Diagnostics | `diagnose()`, `detect_overlap()` |
+| Rendering | `as_gtable()`, `render()`, `draw()`, `ggsave_incant()` |
+| Operation records | `as_manifest()`, `write_incantation()`, `apply_incantation()` |
+| SVG | `as_svg()`, `svg_manifest()`, `select_svg_*()`, `svg_*()`, `verify_svg()`, `write_svg()` |
 
-## 开发验证
+## Development checks
 
 ```r
 devtools::test()
 devtools::check()
 ```
 
-README 中的功能效果图均由 [dev/readme-figures.R](dev/readme-figures.R) 使用当前包代码生成，
-不是手工示意图。
+All feature illustrations in this README are generated by [dev/readme-figures.R](dev/readme-figures.R) using current package code,
+not manually drawn mockups.
