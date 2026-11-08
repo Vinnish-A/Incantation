@@ -9,13 +9,22 @@
 #' @param width,height,units Device size the scene is measured against. Required:
 #'   element geometry is only meaningful once a device of a known size exists, and
 #'   a point offset chosen at one size overshoots at another (REVIEW s2.1).
+#' @param device Measurement device: "cairo_pdf" (default), "pdf", "svglite"
+#'   or "ragg". Use the device matching the intended final format for exact text metrics.
+#' @param family Default font family on the bound device. Plot font settings take precedence.
+#' @param res Raster resolution for a ragg measurement device, in pixels per inch.
+#' @param plot_ids Optional unique semantic identities in subplot order, retained
+#'   in edit manifests to detect replay against reordered or replaced plots.
 #' @return An `inc_scene`.
 #' @export
-incant = function(x, width = NULL, height = NULL, units = "in") {
+incant = function(x, width = NULL, height = NULL, units = "in",
+                  device = c("cairo_pdf", "pdf", "svglite", "ragg"),
+                  family = "sans", res = 300, plot_ids = NULL) {
   if (is.null(width) || is.null(height)) err_no_device()
+  renderer = list(type = match.arg(device), family = family, res = res)
   device = list(width = width, height = height, units = units)
 
-  # Everything happens inside the bound null device: building the gtable needs a
+  # Everything happens inside the bound offscreen device: building the gtable needs a
   # device for text metrics (otherwise ggplot2/patchwork open Rplots.pdf), and
   # measuring each part's base rectangle needs the same one. Downstream
   # bbox()/gap() are then pure arithmetic over these + the transform log.
@@ -23,19 +32,21 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
     cap = inc_capture(x)
     elements = build_elements(cap$root, cap$backend, cap$index_map)
     elements = lapply(elements, function(el) {
-      el$parts = lapply(el$parts, function(p) {
+      measure_part = function(p) {
         p$base = tryCatch(rect_from_frames(p$frames),
                           error = function(e) c(left = NA, bottom = NA, right = NA, top = NA))
         p
-      })
+      }
+      el$parts = lapply(el$parts, measure_part)
+      if (!is.null(el$anchor_parts)) el$anchor_parts = lapply(el$anchor_parts, measure_part)
       el
     })
     list(cap = cap, elements = elements)
-  })
+  }, renderer = renderer)
   cap = built$cap
   registry = stats::setNames(built$elements, vapply(built$elements, `[[`, character(1), "id"))
 
-  structure(
+  scene = structure(
     list(
       base = cap$root,
       backend = cap$backend,
@@ -48,6 +59,7 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
         }
       ),
       device = device,
+      renderer = renderer,
       registry = registry,
       transforms = list(),
       decorations = list(),
@@ -55,6 +67,25 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
     ),
     class = "inc_scene"
   )
+  plots = Filter(function(e) identical(e$role, "plot"), registry)
+  if (!is.null(plot_ids) && (length(plot_ids) != length(plots) ||
+      anyNA(plot_ids) || any(!nzchar(plot_ids)) || anyDuplicated(plot_ids))) {
+    inc_abort("`plot_ids` must give one unique, non-empty identity per subplot.",
+              class = "inc_error_plot_identity")
+  }
+  scene$plot_identities = stats::setNames(lapply(seq_along(plots), function(i) {
+    el = plots[[i]]
+    if (!is.null(plot_ids)) return(list(id = as.character(plot_ids[[i]])))
+    roles = c("title", "subtitle", "xlab-b", "ylab-l")
+    labels = lapply(roles, function(role) {
+      atomic = registry[[paste0(el$id, "/", role)]]
+      if (is.null(atomic)) return(NULL)
+      .grob_text(grob_at(scene$base, atomic$parts[[1]]$grob_path))
+    })
+    list(roles = sort(unique(vapply(el$parts, `[[`, character(1), "role"))),
+         labels = stats::setNames(labels, roles))
+  }), vapply(plots, `[[`, character(1), "id"))
+  scene
 }
 
 # --- internal accessors ------------------------------------------------------
@@ -72,7 +103,10 @@ incant = function(x, width = NULL, height = NULL, units = "in") {
   for (tr in .resolved_transforms(scene)) {
     if (is.null(tr$dx) && is.null(tr$dy)) next
     moved = .moved_paths(scene, tr)
-    if (any(vapply(moved, identical, logical(1), grob_path))) {
+    if (any(vapply(moved, function(path) {
+      length(path) <= length(grob_path) &&
+        identical(path, grob_path[seq_along(path)])
+    }, logical(1)))) {
       dx = dx + tr$dx; dy = dy + tr$dy
     }
   }

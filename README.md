@@ -54,6 +54,24 @@ ggsave_incant(edited, "edited.svg")
 width and height are required. All measurements bind to an explicit output device, preventing the same pt displacement
 from producing unpredictable results on different canvases.
 
+Device points use **72 points per inch**, including at the final grid rendering
+boundary. Measurement defaults to Cairo PDF, which supports system fonts such as
+Arial. Select the renderer matching your primary output when exact text metrics
+matter:
+
+```r
+scene = incant(p, width = 180, height = 160, units = "mm",
+               device = "cairo_pdf", family = "Arial",
+               plot_ids = c("expression", "response"))
+# Other measurement devices: "svglite" for SVG, "ragg" for PNG, or "pdf".
+# For ragg, res = 450 binds the raster measurement resolution.
+```
+
+PDF export uses Cairo unless the scene explicitly selects base `"pdf"`; PNG
+uses ragg for a ragg scene and Cairo PNG otherwise. SVG uses svglite. Exporting
+another format preserves the frozen layout, but each renderer has its own text
+metrics: inspect those final files rather than assuming identical glyph bounds.
+
 ## Features
 
 ### 1. Inspect and measure layouts
@@ -74,6 +92,13 @@ render(scene, debug = TRUE)   # Red outlines around plot panels
 ```
 
 Helpers: plot_label() checks subplot indices; is_empty_element() identifies spacers.
+
+For recognized ggplots/gtables inside cowplot, alignment measures actual data
+panels while `select_plot()` moves the complete subplot, including its axes.
+`select_panel()` instead moves only the data region. Nested bodies use the union
+of their recognized panels. `inspect()$anchor_type` reports `data-panel` for these
+anchors and `plot-viewport` when an arbitrary grob only exposes a placement slot;
+do not treat a viewport fallback as a verified data-region boundary.
 
 ### 2. Select and translate elements
 
@@ -198,6 +223,16 @@ replayed = apply_incantation(fresh, "edit.json")
 
 as_manifest(replayed)
 ```
+
+Give `incant(..., plot_ids = c("A_expression", "B_response"))` stable semantic
+identities when panels lack distinctive titles/axis labels, particularly for
+cowplot composites. New manifests check identities of referenced plots before
+replay; without explicit identities, visible labels and role structure provide a
+more limited check. Updating numeric data is allowed, but reordering/replacing
+semantic plots is rejected. Old manifests without identity metadata retain their
+legacy behavior and require manual target verification. Device-bound operations
+also check measurement renderer, font family and resolution; semantic constraints
+can remeasure on a fresh device. Manifest numbers retain full precision.
 
 ### 8. Edit final SVG elements
 

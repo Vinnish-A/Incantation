@@ -324,9 +324,9 @@ decorate_group = function(scene, plots, title = NULL, side = "top", id = NULL,
   with_scene_device(scene$device, function() {
     grob = grid::textGrob(op$title, rot = op$title_angle,
                           gp = .decoration_text_gp(op))
-    c(width = grid::convertWidth(grid::grobWidth(grob), "pt", valueOnly = TRUE),
-      height = grid::convertHeight(grid::grobHeight(grob), "pt", valueOnly = TRUE))
-  })
+    c(width = grid::convertWidth(grid::grobWidth(grob), "bigpts", valueOnly = TRUE),
+      height = grid::convertHeight(grid::grobHeight(grob), "bigpts", valueOnly = TRUE))
+  }, renderer = scene$renderer)
 }
 
 .decoration_geometry = function(scene, op) {
@@ -430,10 +430,10 @@ decorate_group = function(scene, plots, title = NULL, side = "top", id = NULL,
   geometry = .decoration_geometry(scene, op)
   ordinal = match(op$id, names(scene$decorations))
   line = grid::segmentsGrob(
-    x0 = grid::unit(geometry$line[["x0"]], "pt"),
-    y0 = grid::unit(geometry$line[["y0"]], "pt"),
-    x1 = grid::unit(geometry$line[["x1"]], "pt"),
-    y1 = grid::unit(geometry$line[["y1"]], "pt"),
+    x0 = grid::unit(geometry$line[["x0"]], "bigpts"),
+    y0 = grid::unit(geometry$line[["y0"]], "bigpts"),
+    x1 = grid::unit(geometry$line[["x1"]], "bigpts"),
+    y1 = grid::unit(geometry$line[["y1"]], "bigpts"),
     gp = grid::gpar(col = op$style$line_colour, lwd = op$style$line_width,
                     lty = op$style$line_linetype, lineend = "butt"),
     name = paste0("incant-", op$id, "-line")
@@ -444,8 +444,8 @@ decorate_group = function(scene, plots, title = NULL, side = "top", id = NULL,
   if (!is.null(op$title)) {
     title = grid::textGrob(
       op$title,
-      x = grid::unit(geometry$title[["x"]], "pt"),
-      y = grid::unit(geometry$title[["y"]], "pt"),
+      x = grid::unit(geometry$title[["x"]], "bigpts"),
+      y = grid::unit(geometry$title[["y"]], "bigpts"),
       just = "centre", rot = op$title_angle,
       gp = .decoration_text_gp(op),
       name = paste0("incant-", op$id, "-title")

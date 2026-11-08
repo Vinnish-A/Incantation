@@ -123,6 +123,7 @@ as_svg = function(scene) {
   device_id = grDevices::dev.cur()
   on.exit(if (grDevices::dev.cur() == device_id) grDevices::dev.off(), add = TRUE)
   grid::grid.newpage()
+  grid::pushViewport(grid::viewport(gp = grid::gpar(fontfamily = scene$renderer$family %||% "sans")))
   grid::grid.draw(as_gtable(scene))
   grDevices::dev.off()
   doc = take() |> as.character() |> xml2::read_xml() |> .assign_svg_ids()

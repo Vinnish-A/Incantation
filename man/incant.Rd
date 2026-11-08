@@ -4,7 +4,16 @@
 \alias{incant}
 \title{Capture a laid-out figure for post-layout editing}
 \usage{
-incant(x, width = NULL, height = NULL, units = "in")
+incant(
+  x,
+  width = NULL,
+  height = NULL,
+  units = "in",
+  device = c("cairo_pdf", "pdf", "svglite", "ragg"),
+  family = "sans",
+  res = 300,
+  plot_ids = NULL
+)
 }
 \arguments{
 \item{x}{A ggplot, patchwork, aplot, cowplot or gtable object.}
@@ -12,6 +21,16 @@ incant(x, width = NULL, height = NULL, units = "in")
 \item{width, height, units}{Device size the scene is measured against. Required:
 element geometry is only meaningful once a device of a known size exists, and
 a point offset chosen at one size overshoots at another (REVIEW s2.1).}
+
+\item{device}{Measurement device: "cairo_pdf" (default), "pdf", "svglite"
+or "ragg". Use the device matching the intended final format for exact text metrics.}
+
+\item{family}{Default font family on the bound device. Plot font settings take precedence.}
+
+\item{res}{Raster resolution for a ragg measurement device, in pixels per inch.}
+
+\item{plot_ids}{Optional unique semantic identities in subplot order, retained
+in edit manifests to detect replay against reordered or replaced plots.}
 }
 \value{
 An \code{inc_scene}.

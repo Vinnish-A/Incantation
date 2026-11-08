@@ -3,6 +3,7 @@
 ^example\.R$
 ^example2\.R$
 ^dev$
+^docs$
 ^result$
 ^plan$
 ^\.git$

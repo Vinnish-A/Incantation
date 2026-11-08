@@ -10,7 +10,7 @@ ggsave_incant(
   width = NULL,
   height = NULL,
   units = NULL,
-  res = 300
+  res = NULL
 )
 }
 \arguments{
@@ -20,7 +20,8 @@ ggsave_incant(
 
 \item{width, height, units}{Optional; must match the scene if given.}
 
-\item{res}{PNG resolution.}
+\item{res}{PNG resolution; defaults to the scene's bound resolution. A ragg
+scene requires the same resolution used for measurement.}
 }
 \description{
 A pt offset chosen at the scene's device size overshoots at another, so saving

@@ -2,7 +2,9 @@
 % Please edit documentation in R/measure.R
 \name{inspect}
 \alias{inspect}
-\title{Registry of a scene as a data frame}
+\title{Registry of a scene as a data frame
+Includes \code{anchor_type}: recognized cowplot data regions are \code{data-panel},
+arbitrary-grob fallbacks are \code{plot-viewport}, and other adapters use \code{layout-cell}.}
 \usage{
 inspect(scene)
 }

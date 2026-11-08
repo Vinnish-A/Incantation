@@ -62,7 +62,8 @@ test_that("the README §19 success criterion holds end to end", {
   expect_equal(bbox(s0, 2), bbox(s1, 2), tolerance = 1e-9)  # enrich
   expect_identical(as_gtable(s0)$heights, as_gtable(s1)$heights)
   expect_equal(canvas_size(s0), canvas_size(s1))
-  expect_equal(as.numeric(gap(s1, 3, 1)), 44.89 - 24, tolerance = 0.05)
+  expect_equal(as.numeric(gap(s1, 3, 1)), as.numeric(gap(s0, 3, 1)) - 24,
+               tolerance = 0.05)
 
   expect_s3_class(render(s1), "gtable")
 })

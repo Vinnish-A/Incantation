@@ -10,7 +10,9 @@ bbox(scene, ref)
 \item{scene}{An \code{inc_scene}.}
 
 \item{ref}{A plot index (integer) or element id (string). For a whole plot the
-box is its panel -- the data region, the useful visual anchor.}
+box is its panel -- the data region, the useful visual anchor.
+Cowplot recognizes panels inside native plots; an arbitrary grob falls back
+to its viewport. Check \code{inspect(scene)$anchor_type} before treating it as data.}
 }
 \value{
 A list with \code{left}, \code{bottom}, \code{right}, \code{top} (pt) and a \code{device} attr.

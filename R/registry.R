@@ -138,8 +138,35 @@ build_elements = function(root, backend, index_map = NULL) {
   els
 }
 
-# cowplot (REVIEW s4.2): one "panel" cell; subplots are GeomDrawGrob children of
-# that panel gTree, each positioned by its own viewport.
+# Locate native data panels inside cowplot's drawing wrappers. Keep their full
+# viewport chains so measurement includes inner margins and fixed aspect ratios.
+.cowplot_panel_parts = function(g, frames, path) {
+  if (!is.null(g$vp)) frames = c(frames, list(list(vp = g$vp)))
+  parts = list()
+  if (inherits(g, "gtable")) {
+    cow = .looks_like_cowplot(g)
+    for (i in seq_along(g$grobs)) {
+      role = g$layout$name[i]
+      part = .make_part(g, i, role, frames, path)
+      if (.is_panel_role(role) && !cow) {
+        parts = c(parts, list(part))
+      } else if (inherits(g$grobs[[i]], "gtable") ||
+                 (cow && identical(role, "panel"))) {
+        parts = c(parts, .cowplot_panel_parts(
+          g$grobs[[i]], part$frames, part$grob_path
+        ))
+      }
+    }
+  } else if (!is.null(g$children)) {
+    for (i in seq_along(g$children)) {
+      parts = c(parts, .cowplot_panel_parts(g$children[[i]], frames, c(path, i)))
+    }
+  }
+  parts
+}
+
+# cowplot: move a complete GeomDrawGrob, but anchor alignment to its native data
+# panels. A non-plot grob retains an explicitly identified viewport anchor.
 build_elements_cowplot = function(root) {
   panel_row = which(root$layout$name == "panel")[1]
   panel = root$grobs[[panel_row]]
@@ -156,15 +183,20 @@ build_elements_cowplot = function(root) {
     frames = list(panel_frame, list(vp = vp))
     part = list(role = "panel", grob_path = c(panel_row, ci), frames = frames,
                 is_background = FALSE, is_blank = is_blank_grob(child), z = k)
+    anchors = .cowplot_panel_parts(child, list(panel_frame), c(panel_row, ci))
+    anchor_type = if (length(anchors)) "data-panel" else "plot-viewport"
+    if (!length(anchors)) anchors = list(part)
     pid = paste0("plot-", k)
     els[[length(els) + 1]] = list(
       id = pid, role = "plot", plot_index = k,
       parts = list(part), anchor = 1L, container = "gtree-child",
+      anchor_parts = anchors, anchor_type = anchor_type,
       is_empty = isTRUE(part$is_blank)
     )
     els[[length(els) + 1]] = list(
       id = paste0(pid, "/panel"), role = "panel", plot_index = k,
-      parts = list(part), anchor = 1L, container = "gtree-child",
+      parts = anchors, anchor = seq_along(anchors), container = "gtree-child",
+      anchor_type = anchor_type,
       is_empty = isTRUE(part$is_blank)
     )
   }

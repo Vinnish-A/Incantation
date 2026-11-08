@@ -54,9 +54,9 @@ render = function(scene, debug = FALSE) {
   cv = .canvas_pt(scene)
   overlay = grid::gTree(children = do.call(grid::gList, lapply(seq_len(nrow(reg)), function(i) {
     grid::rectGrob(
-      x = grid::unit(reg$left[i], "pt"), y = grid::unit(reg$bottom[i], "pt"),
-      width = grid::unit(reg$right[i] - reg$left[i], "pt"),
-      height = grid::unit(reg$top[i] - reg$bottom[i], "pt"),
+      x = grid::unit(reg$left[i], "bigpts"), y = grid::unit(reg$bottom[i], "bigpts"),
+      width = grid::unit(reg$right[i] - reg$left[i], "bigpts"),
+      height = grid::unit(reg$top[i] - reg$bottom[i], "bigpts"),
       just = c("left", "bottom"),
       gp = grid::gpar(col = "red", fill = NA, lwd = 0.5)
     )
@@ -81,10 +81,11 @@ draw = function(scene) {
 #' @param scene An `inc_scene`.
 #' @param filename Output path (.png, .pdf or .svg).
 #' @param width,height,units Optional; must match the scene if given.
-#' @param res PNG resolution.
+#' @param res PNG resolution; defaults to the scene's bound resolution. A ragg
+#'   scene requires the same resolution used for measurement.
 #' @export
 ggsave_incant = function(scene, filename, width = NULL, height = NULL,
-                         units = NULL, res = 300) {
+                         units = NULL, res = NULL) {
   dev = scene$device
   if (!is.null(width) || !is.null(height) || !is.null(units)) {
     rd = list(width = width %||% dev$width, height = height %||% dev$height,
@@ -96,14 +97,21 @@ ggsave_incant = function(scene, filename, width = NULL, height = NULL,
   win = .units_to_inches(dev$width, dev$units)
   hin = .units_to_inches(dev$height, dev$units)
   ext = tolower(tools::file_ext(filename))
-  switch(ext,
-    png = grDevices::png(filename, width = win, height = hin, units = "in", res = res),
-    pdf = grDevices::pdf(filename, width = win, height = hin),
-    svg = svglite::svglite(filename, width = win, height = hin),
+  renderer = scene$renderer %||% list(type = "cairo_pdf", family = "sans", res = 300)
+  if (identical(renderer$type, "ragg") && !is.null(res) && res != renderer$res) {
+    inc_abort("ragg scenes bind raster resolution; recapture at the requested res.",
+              class = "inc_error_render_device_mismatch")
+  }
+  type = switch(ext,
+    png = if (identical(renderer$type, "ragg")) "ragg" else "png",
+    pdf = if (identical(renderer$type, "pdf")) "pdf" else "cairo_pdf",
+    svg = "svglite",
     inc_abort(sprintf("unsupported output extension: .%s", ext), class = "inc_error_bad_ext")
   )
+  .open_render_device(type, filename, win, hin, renderer$family, res %||% renderer$res)
   on.exit(grDevices::dev.off(), add = TRUE)
   grid::grid.newpage()
+  grid::pushViewport(grid::viewport(gp = grid::gpar(fontfamily = renderer$family)))
   grid::grid.draw(as_gtable(scene))
   invisible(filename)
 }

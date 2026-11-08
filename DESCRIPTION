@@ -40,6 +40,7 @@ Suggests:
     tibble,
     tidyverse,
     jsonlite,
+    ragg,
     rsvg,
     testthat (>= 3.0.0),
     vdiffr

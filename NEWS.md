@@ -1,3 +1,16 @@
+# Unreleased
+
+* Use consistent 72-per-inch device points for translations, debug bounds and
+  decorations; enforce above/below placement even from the wrong side.
+* Align cowplot subplots by contained data panels while retaining complete
+  subplot movement and separate outer boundaries. `inspect()` identifies
+  viewport-only fallbacks explicitly.
+* Bind measurement to Cairo PDF, base PDF, svglite or ragg with font/resolution
+  settings. Cairo PDF is the default and supports system fonts such as Arial.
+  Scene manifests retain semantic plot identities and measurement settings,
+  reject incompatible replay, and preserve numeric precision.
+* Refresh runnable README examples and previews for the current plotting stack.
+
 # incantation 0.3.0
 
 * Added group decorations for ggplot2, patchwork, aplot, cowplot and raw gtable

@@ -19,6 +19,8 @@ as_manifest = function(scene) {
     incantation_version = 2L,
     kind = "scene",
     device = scene$device,
+    renderer = scene$renderer,
+    plot_identities = scene$plot_identities,
     operations = lapply(scene$transforms, function(tr) {
       tr[!vapply(tr, is.null, logical(1))]
     })
@@ -34,7 +36,7 @@ write_incantation = function(scene, path) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     inc_abort("write_incantation() needs the 'jsonlite' package.", class = "inc_error_missing_pkg")
   }
-  jsonlite::write_json(as_manifest(scene), path, auto_unbox = TRUE, pretty = TRUE)
+  jsonlite::write_json(as_manifest(scene), path, auto_unbox = TRUE, pretty = TRUE, digits = NA)
   invisible(path)
 }
 
@@ -64,6 +66,32 @@ apply_incantation = function(scene, path) {
   }, ops)
   if (length(bound) && !.same_device(scene$device, man$device)) {
     err_device_mismatch(man$device, scene$device)
+  }
+  if (length(bound) && !is.null(man$renderer) &&
+      !identical(unlist(man$renderer), unlist(scene$renderer))) {
+    inc_abort("device-bound edits require the same measurement device, font family and resolution.",
+              class = "inc_error_render_device_mismatch")
+  }
+  if (!is.null(man$plot_identities)) {
+    used = unique(as.character(unlist(lapply(ops, function(op) {
+      c(op$target, op$reference, op$targets)
+    }), use.names = FALSE)))
+    used = unique(sub("/.*$", "", used[grepl("^plot-[0-9]+($|/)", used)]))
+    for (id in used) {
+      expected = man$plot_identities[[id]]
+      actual = scene$plot_identities[[id]]
+      if (is.null(actual)) err_no_match(sprintf("manifest target `%s`", id), names(scene$registry))
+      same = if (!is.null(expected$id) || !is.null(actual$id)) {
+        identical(unlist(expected$id), unlist(actual$id))
+      } else {
+        identical(unlist(expected$roles), unlist(actual$roles)) &&
+          identical(lapply(expected$labels, unlist), lapply(actual$labels, unlist))
+      }
+      if (!same) {
+        inc_abort(sprintf("manifest identity for `%s` differs; inspect the current plot order and rebuild the edit.", id),
+                  class = "inc_error_plot_identity")
+      }
+    }
   }
   for (op in ops) {
     op$type = .scalar_value(op$type)

@@ -55,14 +55,14 @@ save_row = function(scenes, labels, filename, width, height, res = 150) {
 }
 
 save_backend_grid = function(scenes, labels, filename, width, height, res = 150) {
-  grDevices::png(filename, width = width * 2, height = (height + 0.3) * 2,
+  grDevices::png(filename, width = width * 2, height = (height + 0.5) * 2,
                  units = "in", res = res, bg = "white")
   on.exit(grDevices::dev.off(), add = TRUE)
   grid::grid.newpage()
   grid::pushViewport(grid::viewport(layout = grid::grid.layout(
     4, 2,
     widths = grid::unit(rep(width, 2), "in"),
-    heights = grid::unit(rep(c(0.3, height), 2), "in")
+    heights = grid::unit(rep(c(0.5, height), 2), "in")
   )))
   lapply(seq_along(scenes), function(i) {
     column = (i - 1) %% 2 + 1
@@ -98,8 +98,8 @@ p_hp = base_scatter(hp, red, "Engine power") + labs(y = "Horsepower")
 p_qsec = base_scatter(qsec, green, "Quarter mile") + labs(y = "Seconds")
 
 # Hero and group decoration ---------------------------------------------------
-triptych = (p_mpg + p_hp + p_qsec) &
-  theme(plot.margin = margin(34, 12, 12, 12, "pt"))
+group_theme = theme(plot.margin = margin(34, 12, 12, 12, "pt"))
+triptych = (p_mpg + group_theme) + (p_hp + group_theme) + (p_qsec + group_theme)
 hero = incant(triptych, width = 11.4, height = 3.8) |>
   decorate_group(
     1:3, "Post-layout group decoration", id = "hero-group",
@@ -274,24 +274,24 @@ backend_plot = function(plot, backend, id, gap) {
     getElement("id")
   scene |>
     decorate_group(
-      targets, backend, id = id, gap = gap, title_gap = 3,
+      targets, backend, id = id, gap = gap, title_gap = 3, reference = "panel",
       trim = c(4, 6), title_size = 11,
       line_colour = purple, title_colour = purple
     )
 }
-backend_p1 = p_mpg + theme(plot.title = element_blank(), axis.title = element_blank())
-backend_p2 = p_hp + theme(plot.title = element_blank(), axis.title = element_blank())
-backend_p3 = p_qsec + theme(plot.title = element_blank(), axis.title = element_blank())
+backend_p1 = p_mpg + group_theme + theme(plot.title = element_blank(), axis.title = element_blank())
+backend_p2 = p_hp + group_theme + theme(plot.title = element_blank(), axis.title = element_blank())
+backend_p3 = p_qsec + group_theme + theme(plot.title = element_blank(), axis.title = element_blank())
 backend_scenes = list(
-  backend_plot(backend_p1, "ggplot", "backend-ggplot", -24),
-  backend_plot(backend_p1 + backend_p2, "patchwork", "backend-patchwork", -24),
+  backend_plot(backend_p1, "ggplot", "backend-ggplot", 3),
+  backend_plot(backend_p1 + backend_p2, "patchwork", "backend-patchwork", 3),
   backend_plot(
     backend_p1 |> aplot::insert_right(backend_p3, width = .55),
-    "aplot", "backend-aplot", -24
+    "aplot", "backend-aplot", 3
   ),
   backend_plot(
     cowplot::plot_grid(backend_p1, backend_p2),
-    "cowplot", "backend-cowplot", -24
+    "cowplot", "backend-cowplot", 3
   )
 )
 save_backend_grid(

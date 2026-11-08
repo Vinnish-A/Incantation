@@ -120,16 +120,8 @@ send_to_back = function(scene) {
   bb = bbox(scene, b)
 
   switch(op$type,
-    place_below = {
-      cur = as.numeric(gap(scene, a, b, "vertical"))
-      dy = if (ba$bottom < bb$bottom) cur - op$gap else op$gap - cur
-      .translate_op(a, dy = dy)
-    },
-    place_above = {
-      cur = as.numeric(gap(scene, a, b, "vertical"))
-      dy = if (ba$bottom > bb$bottom) op$gap - cur else cur - op$gap
-      .translate_op(a, dy = dy)
-    },
+    place_below = .translate_op(a, dy = bb$bottom - op$gap - ba$top),
+    place_above = .translate_op(a, dy = bb$top + op$gap - ba$bottom),
     align_top = .translate_op(a, dy = bb$top - ba$top),
     align_bottom = .translate_op(a, dy = bb$bottom - ba$bottom),
     align_left = .translate_op(a, dx = bb$left - ba$left),

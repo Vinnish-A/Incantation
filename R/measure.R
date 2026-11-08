@@ -21,7 +21,8 @@
 
 # Anchor may be one part (normal panel) or several (facet panels) -> union.
 .anchor_rect = function(scene, el) {
-  rects = lapply(el$parts[el$anchor], function(part) .part_rect(scene, part))
+  parts = el$anchor_parts %||% el$parts[el$anchor]
+  rects = lapply(parts, function(part) .part_rect(scene, part))
   rect_union(rects)
 }
 
@@ -30,6 +31,8 @@
 #' @param scene An `inc_scene`.
 #' @param ref A plot index (integer) or element id (string). For a whole plot the
 #'   box is its panel -- the data region, the useful visual anchor.
+#'   Cowplot recognizes panels inside native plots; an arbitrary grob falls back
+#'   to its viewport. Check `inspect(scene)$anchor_type` before treating it as data.
 #' @return A list with `left`, `bottom`, `right`, `top` (pt) and a `device` attr.
 #' @export
 bbox = function(scene, ref) {
@@ -111,6 +114,8 @@ print.inc_gap = function(x, ...) {
 as.numeric.inc_gap = function(x, ...) unclass(x)[[1]]
 
 #' Registry of a scene as a data frame
+#' Includes `anchor_type`: recognized cowplot data regions are `data-panel`,
+#' arbitrary-grob fallbacks are `plot-viewport`, and other adapters use `layout-cell`.
 #'
 #' One row per addressable element, with current device coordinates.
 #' @param scene An `inc_scene`.
@@ -132,6 +137,7 @@ inspect = function(scene) {
       if (length(p$grob_path) == 1) nm[p$grob_path] else "<nested>"
     }, character(1)),
     container = vapply(els, `[[`, character(1), "container"),
+    anchor_type = vapply(els, function(e) e$anchor_type %||% "layout-cell", character(1)),
     is_empty = vapply(els, function(e) isTRUE(e$is_empty), logical(1)),
     left = vapply(rect, function(r) unname(r["left"]), numeric(1)),
     bottom = vapply(rect, function(r) unname(r["bottom"]), numeric(1)),

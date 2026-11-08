@@ -1,5 +1,5 @@
 # Device + geometry helpers. Everything here is deterministic and offline: no
-# on-screen device is ever opened. We measure on a null pdf() device whose size
+# on-screen device is ever opened. We measure on the bound offscreen device whose size
 # is the scene's bound device size, because element geometry is only resolvable
 # once a device of a known size exists (REVIEW s2.1, Phase 0).
 
@@ -14,7 +14,7 @@
 }
 
 .to_pt = function(x, unit) {
-  if (grid::is.unit(x)) return(grid::convertUnit(x, "pt", valueOnly = TRUE))
+  if (grid::is.unit(x)) return(grid::convertUnit(x, "bigpts", valueOnly = TRUE))
   switch(unit,
     "pt" = x,
     "mm" = x * 72 / 25.4,
@@ -26,11 +26,30 @@
 
 # Open a null device of the scene size, run `fun()`, always close. Returns the
 # value of fun(). Callers do all their grid measurement inside `fun`.
-with_scene_device = function(device, fun) {
+.open_render_device = function(type, filename, width, height, family, res) {
+  switch(type,
+    cairo_pdf = grDevices::cairo_pdf(filename, width = width, height = height, family = family),
+    pdf = grDevices::pdf(filename, width = width, height = height, family = family),
+    svglite = svglite::svglite(filename, width = width, height = height, bg = "white"),
+    ragg = {
+      if (!requireNamespace("ragg", quietly = TRUE)) {
+        inc_abort("device = 'ragg' needs the 'ragg' package.", class = "inc_error_missing_pkg")
+      }
+      ragg::agg_png(filename, width = width, height = height, units = "in", res = res)
+    },
+    png = grDevices::png(filename, width = width, height = height, units = "in",
+                         res = res, type = "cairo", family = family)
+  )
+}
+
+with_scene_device = function(device, fun, renderer = NULL) {
+  renderer = renderer %||% list(type = "cairo_pdf", family = "sans", res = 300)
   win = .units_to_inches(device$width, device$units)
   hin = .units_to_inches(device$height, device$units)
   previous = grDevices::dev.cur()
-  grDevices::pdf(NULL, width = win, height = hin)
+  path = if (identical(renderer$type, "pdf")) NULL else tempfile()
+  on.exit(if (!is.null(path)) unlink(path), add = TRUE)
+  .open_render_device(renderer$type, path, win, hin, renderer$family, renderer$res)
   opened = grDevices::dev.cur()
   on.exit({
     devices = grDevices::dev.list()
@@ -41,6 +60,7 @@ with_scene_device = function(device, fun) {
     }
   }, add = TRUE)
   grid::grid.newpage()
+  grid::pushViewport(grid::viewport(gp = grid::gpar(fontfamily = renderer$family)))
   fun()
 }
 
@@ -130,8 +150,8 @@ wrap_translate = function(g, dx_pt, dy_pt, clip = "off") {
   grid::grobTree(
     g,
     vp = grid::viewport(
-      x = grid::unit(0.5, "npc") + grid::unit(dx_pt, "pt"),
-      y = grid::unit(0.5, "npc") + grid::unit(dy_pt, "pt"),
+      x = grid::unit(0.5, "npc") + grid::unit(dx_pt, "bigpts"),
+      y = grid::unit(0.5, "npc") + grid::unit(dy_pt, "bigpts"),
       width = grid::unit(1, "npc"),
       height = grid::unit(1, "npc"),
       clip = clip
